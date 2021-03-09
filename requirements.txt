@@ -1,0 +1,5 @@
+humanfriendly==9.1
+m3u8==0.8.0
+progress==1.5
+pycryptodomex==3.10.1
+requests==2.25.1
