@@ -1,5 +1,6 @@
 import argparse
 import os
+import re
 import warnings
 
 from Cryptodome.Cipher import AES
@@ -12,7 +13,7 @@ import requests
 __author__ = "Xavier-Lam"
 __description__ = "Rips purchased video off r18.com"
 __title__ = "r18ripper"
-__version__ = "0.1.0"
+__version__ = "0.1.1"
 
 
 DEFAULT_USER_AGENT = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/88.0.4324.150 Safari/537.36 OPR/74.0.3911.107"
@@ -46,7 +47,9 @@ class R18Ripper:
                 if not versions:
                     availables = [v.stream_info.bandwidth
                                   for v in m3u8_obj.playlists]
-                    exit("couldn't find target bandwidth, available choices are: " + ",".join(map(str, availables)))
+                    raise ValueError("couldn't find target bandwidth,"
+                                     "available choices are: "
+                                      + ",".join(map(str, availables)))
             m3u8_obj = self.m3u8_load(versions[-1].absolute_uri)
         else:
             if bandwidth:
@@ -61,15 +64,25 @@ class R18Ripper:
         resp = self.session.get(seg.absolute_uri)
         if seg.key:
             not hasattr(seg.key, "data") and self._load_key(seg.key)
-            return seg.key.cipher.decrypt(resp.content)
+            cipher = getattr(seg.key, "cipher", None)
+            if not cipher:
+                iv = self._create_init_iv(seg)
+                cipher = AES.new(seg.key.data, AES.MODE_CBC, iv)
+            return cipher.decrypt(resp.content)
         else:
             return resp.content
 
     def _load_key(self, key):
         resp = self.session.get(key.absolute_uri)
         key.data = resp.content
-        key.cipher = AES.new(key.data, AES.MODE_CBC, key.iv)
+        if key.iv:
+            key.cipher = AES.new(key.data, AES.MODE_CBC, key.iv)
         return key
+
+    def _create_init_iv(self, seg):
+        match = re.search(r"_(\d+)\.ts$", seg.uri)
+        idx = int(match.group(1))
+        return idx.to_bytes(16, "big")
 
     def m3u8_load(self, uri, headers={}):
         return m3u8.load(uri, http_client=self.client, headers={})
