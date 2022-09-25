@@ -13,7 +13,7 @@ import requests
 __author__ = "Xavier-Lam"
 __description__ = "Rips purchased video off r18.com"
 __title__ = "r18ripper"
-__version__ = "0.1.1"
+__version__ = "0.1.2"
 
 
 DEFAULT_USER_AGENT = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/88.0.4324.150 Safari/537.36 OPR/74.0.3911.107"
@@ -49,7 +49,7 @@ class R18Ripper:
                                   for v in m3u8_obj.playlists]
                     raise ValueError("couldn't find target bandwidth,"
                                      "available choices are: "
-                                      + ",".join(map(str, availables)))
+                                     + ",".join(map(str, availables)))
             m3u8_obj = self.m3u8_load(versions[-1].absolute_uri)
         else:
             if bandwidth:
@@ -136,13 +136,13 @@ def main():
         bandwidth = humanfriendly.parse_size(args.bandwidth)
 
     slice = args.slice
-    start, end = 0, -1
+    start, end = 0, None
     if slice:
         seg_start, seg_end = slice.split(":", maxsplit=2)
         if seg_start:
             start = int(seg_start)
         if seg_end:
-            end = int(seg_end)
+            end = int(seg_end) + 1
 
     session = create_session(**options)
     ripper = R18Ripper(session)
